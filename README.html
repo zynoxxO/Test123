@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLASHY Slots</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+body{background: radial-gradient(circle at top,#111,#000);color:#fff;display:flex;justify-content:center;align-items:flex-start;padding-top:20px;}
+#container{display:flex;flex-direction:column;align-items:center;width:100%;max-width:450px;}
+h1{color:#ffdd00;margin-bottom:10px;text-align:center;text-shadow:0 0 10px #ff0;}
+.slot-machine{background:#222;border-radius:20px;padding:15px;margin:10px;width:100%;box-shadow:0 0 30px rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;}
+.slots{display:flex;justify-content:center;gap:10px;margin:15px 0;}
+.reel{width:60px;height:60px;background:#333;border-radius:10px;display:flex;justify-content:center;align-items:center;font-size:35px;box-shadow:inset 0 -5px 15px rgba(0,0,0,0.6);}
+.controls{display:flex;flex-direction:column;align-items:center;margin-top:10px;}
+#bet-container{display:flex;gap:5px;align-items:center;margin-bottom:10px;}
+#bet-container input{width:60px;padding:5px;border-radius:6px;border:none;text-align:center;font-size:14px;}
+button{padding:8px 15px;border:none;border-radius:10px;background:#ffdd00;color:#111;font-weight:bold;font-size:14px;box-shadow:0 4px 8px rgba(0,0,0,0.5);}
+button:hover{transform:scale(1.05);transition:0.2s;}
+.info{display:flex;justify-content:space-between;width:100%;margin-top:10px;font-size:14px;}
+.history{margin-top:10px;background:rgba(255,255,255,0.05);padding:10px;border-radius:10px;height:120px;overflow-y:auto;font-size:12px;color:#ccc;}
+.win-anim{position:absolute;width:100%;height:100%;top:0;left:0;display:flex;justify-content:center;align-items:center;font-size:2.5em;color:#ff0;text-shadow:0 0 15px #ff0,0 0 30px #fff;pointer-events:none;animation:pop 1s ease forwards;}
+.near-win{animation:flash 0.5s alternate 3;}
+@keyframes pop{0%{transform:scale(0);}50%{transform:scale(1.5);}100%{transform:scale(1);}}
+@keyframes flash{0%{color:#ff0;}100%{color:#fff;}}
+#flashy-l,#flashy-r{position:fixed;font-size:12px;color:#ffdd00;opacity:0.6;}
+#flashy-l{bottom:5px;left:5px;}
+#flashy-r{bottom:5px;right:5px;}
+#nav{display:flex;gap:5px;margin-bottom:10px;}
+#nav button{background:#00aaff;color:#111;}
+</style>
+</head>
+<body>
+
+<div id="container">
+<h1>🎰 FLASHY Slots 🎰</h1>
+
+<!-- Navigation -->
+<div id="nav">
+  <button onclick="showMachine(0)">Machine 1</button>
+  <button onclick="showMachine(1)">Machine 2</button>
+  <button onclick="showMachine(2)">Machine 3</button>
+</div>
+
+<!-- Slot Machines -->
+<div class="slot-machine" id="machine0">
+  <div class="slots">
+    <div class="reel" id="m0r0">🍒</div>
+    <div class="reel" id="m0r1">🍋</div>
+    <div class="reel" id="m0r2">7️⃣</div>
+  </div>
+  <div class="controls">
+    <div id="bet-container">
+      <label>Bet:</label>
+      <input type="number" id="m0bet" min="1" value="1">
+      <button class="maxBet" data-machine="0">MAX</button>
+    </div>
+    <button class="spin" data-machine="0">SPIN</button>
+    <button class="auto" data-machine="0">AUTO</button>
+  </div>
+</div>
+
+<div class="slot-machine" id="machine1" style="display:none;">
+  <div class="slots">
+    <div class="reel" id="m1r0">🍒</div>
+    <div class="reel" id="m1r1">🍋</div>
+    <div class="reel" id="m1r2">7️⃣</div>
+  </div>
+  <div class="controls">
+    <div id="bet-container">
+      <label>Bet:</label>
+      <input type="number" id="m1bet" min="1" value="1">
+      <button class="maxBet" data-machine="1">MAX</button>
+    </div>
+    <button class="spin" data-machine="1">SPIN</button>
+    <button class="auto" data-machine="1">AUTO</button>
+  </div>
+</div>
+
+<div class="slot-machine" id="machine2" style="display:none;">
+  <div class="slots">
+    <div class="reel" id="m2r0">🍒</div>
+    <div class="reel" id="m2r1">🍋</div>
+    <div class="reel" id="m2r2">7️⃣</div>
+  </div>
+  <div class="controls">
+    <div id="bet-container">
+      <label>Bet:</label>
+      <input type="number" id="m2bet" min="1" value="1">
+      <button class="maxBet" data-machine="2">MAX</button>
+    </div>
+    <button class="spin" data-machine="2">SPIN</button>
+    <button class="auto" data-machine="2">AUTO</button>
+  </div>
+</div>
+
+<div class="info">
+  <div>Money: $<span id="money">400</span></div>
+  <div>Last Win: $<span id="last">0</span></div>
+</div>
+<div class="history" id="history"></div>
+<div id="flashy-l">Made by FLASHY</div>
+<div id="flashy-r">Made by FLASHY</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+
+const symbols=[{s:'🍒',w:30},{s:'🍋',w:25},{s:'🍊',w:20},{s:'🔔',w:12},{s:'⭐',w:8},{s:'7️⃣',w:5}];
+const pool=[]; symbols.forEach(sym=>{for(let i=0;i<sym.w;i++) pool.push(sym.s);});
+
+const moneyEl=document.getElementById('money');
+const lastEl=document.getElementById('last');
+const historyEl=document.getElementById('history');
+
+let money = parseInt(localStorage.getItem('money')) || 400;
+let history = JSON.parse(localStorage.getItem('history')) || [];
+let autoIntervals=[];
+
+moneyEl.textContent = money;
+
+function saveMoney(){ localStorage.setItem('money', money); }
+function saveHistory(){ localStorage.setItem('history', JSON.stringify(history)); }
+
+function updateHistoryDisplay(){
+  historyEl.innerHTML='';
+  history.forEach(h=>{
+    const el=document.createElement('div'); el.textContent=h; historyEl.appendChild(el);
+  });
+}
+updateHistoryDisplay();
+
+function rndPick(){ return pool[Math.floor(Math.random()*pool.length)]; }
+
+function addHistory(text){
+  history.unshift(`${new Date().toLocaleTimeString()}: ${text}`);
+  if(history.length>50) history.pop();
+  saveHistory(); updateHistoryDisplay();
+}
+
+function evaluate(result,bet){
+  const [a,b,c]=result;
+  if(a===b && b===c) return bet*10;
+  else if(a===b || b===c || a===c) return bet*2;
+  else return 0;
+}
+
+function showWinAnimation(win){
+  const anim=document.createElement('div'); anim.className='win-anim';
+  anim.textContent=`🎉 WIN $${win}! 🎉`;
+  document.body.appendChild(anim);
+  setTimeout(()=>document.body.removeChild(anim),1200);
+}
+
+function animateSpin(machineId,reelsArr,finalSymbols){
+  const durations=[700,900,1100];
+  for(let i=0;i<3;i++){
+    let interval=setInterval(()=>{ reelsArr[i].textContent=rndPick(); },50);
+    setTimeout(((i,intv)=>()=>{
+      clearInterval(intv);
+      reelsArr[i].textContent=finalSymbols[i];
+      if(new Set(finalSymbols).size===2){
+        reelsArr.forEach(r=>r.classList.add('near-win'));
+        setTimeout(()=>reelsArr.forEach(r=>r.classList.remove('near-win')),500);
+      }
+    })(i,interval),durations[i]);
+  }
+}
+
+function spinMachine(machineId){
+  const reels=[...document.querySelectorAll(`#machine${machineId} .reel`)];
+  const final=[rndPick(),rndPick(),rndPick()];
+  const betInput=document.getElementById(`m${machineId}bet`);
+  let bet=parseInt(betInput.value)||1;
+  if(bet>money) bet=money;
+  money-=bet; moneyEl.textContent=money; saveMoney();
+  animateSpin(machineId,reels,final);
+  setTimeout(()=>{
+    const win=evaluate(final,bet); money+=win; moneyEl.textContent=money; saveMoney();
+    lastEl.textContent=win;
+    if(win>0) showWinAnimation(win);
+    addHistory(`Machine ${machineId+1}: Bet $${bet} → ${final.join(' ')} → ${win>0?'Win $'+win:'Lose'}`);
+  },1200);
+}
+
+function showMachine(id){
+  document.querySelectorAll('.slot-machine').forEach((m,i)=>{ m.style.display=i===id?'flex':'none'; });
+}
+
+// ===== Event Listeners =====
+document.querySelectorAll('.spin').forEach(btn=>{ btn.addEventListener('click',()=>spinMachine(parseInt(btn.dataset.machine))); });
+document.querySelectorAll('.maxBet').forEach(btn=>{ btn.addEventListener('click',()=>{ const id=parseInt(btn.dataset.machine); document.getElementById(`m${id}bet`).value=money; }); });
+document.querySelectorAll('.auto').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const id=parseInt(btn.dataset.machine);
+    if(autoIntervals[id]){ clearInterval(autoIntervals[id]); autoIntervals[id]=null; btn.textContent='AUTO'; return; }
+    btn.textContent='STOP';
+    autoIntervals[id]=setInterval(()=>{ if(money>0) spinMachine(id); else clearInterval(autoIntervals[id]); },1500);
+  });
+});
+
+showMachine(0);
+
+});
+</script>
+
+</body>
+  </html>
